@@ -51,4 +51,3 @@ jobs:
       - name: Build success notification
         if: success()
         run: echo "✅ Effigies 镜像构建并推送至阿里云 ACR 完成"
-		
