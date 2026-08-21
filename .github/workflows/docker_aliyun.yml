@@ -1,0 +1,54 @@
+name: Effigies Build & Push to Aliyun ACR
+run-name: ${{ github.actor }} build effigies runtime image
+on:
+  push:
+    branches:
+      - dev
+    paths:
+      - 'Dockerfile'
+      - '.github/workflows/docker_aliyun.yml'
+  workflow_dispatch:
+
+jobs:
+  build-push:
+    name: Build & Push Ubuntu20.04 CUDA Image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository with submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Aliyun Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.ACR_REGISTRY }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Build and push Effigies image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          # 如果 Dockerfile 定义了多阶段构建且目标为 runtime，可取消下一行注释
+          # target: runtime
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ secrets.ACR_REGISTRY }}/${{ secrets.ACR_NAMESPACE }}/effigies:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Clean up Docker resources
+        if: always()
+        run: docker system prune -f
+
+      - name: Build success notification
+        if: success()
+        run: echo "✅ Effigies 镜像构建并推送至阿里云 ACR 完成"
+		
