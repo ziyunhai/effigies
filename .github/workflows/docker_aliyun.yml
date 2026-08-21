@@ -3,7 +3,7 @@ run-name: ${{ github.actor }} build effigies runtime image
 on:
   push:
     branches:
-      - dev
+      - main
     paths:
       - 'Dockerfile'
       - '.github/workflows/docker_aliyun.yml'
