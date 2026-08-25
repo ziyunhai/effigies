@@ -6,22 +6,12 @@ on:
       - main
     paths:
       - 'Dockerfile'
-      - 'Dockerfile.cpu'
       - '.github/workflows/docker_aliyun.yml'
   workflow_dispatch:
-    inputs:
-      image_type:
-        description: '选择镜像类型 (cuda 或 cpu)'
-        required: true
-        default: 'cuda'
-        type: choice
-        options:
-          - cuda
-          - cpu
 
 jobs:
   build-push:
-    name: Build & Push Effigies Image
+    name: Build & Push Ubuntu20.04 CUDA Image
     runs-on: ubuntu-latest
 
     steps:
@@ -29,45 +19,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: true
-
-      - name: Determine build type
-        id: set-build-type
-        run: |
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            BUILD_TYPE="${{ github.event.inputs.image_type }}"
-          else
-            # push 事件：从所有提交中提取新增/修改的文件列表
-            FILES=$(echo '${{ toJson(github.event.commits) }}' | jq -r '.[] | .added[], .modified[]' | sort -u)
-            echo "Changed files: $FILES"
-            HAS_CUDA=false
-            HAS_CPU=false
-            if echo "$FILES" | grep -q "Dockerfile$"; then
-              HAS_CUDA=true
-            fi
-            if echo "$FILES" | grep -q "Dockerfile.cpu$"; then
-              HAS_CPU=true
-            fi
-            if [ "$HAS_CUDA" = true ] && [ "$HAS_CPU" = true ]; then
-              echo "Both Dockerfile and Dockerfile.cpu changed, defaulting to CUDA"
-              BUILD_TYPE="cuda"
-            elif [ "$HAS_CUDA" = true ]; then
-              BUILD_TYPE="cuda"
-            elif [ "$HAS_CPU" = true ]; then
-              BUILD_TYPE="cpu"
-            else
-              BUILD_TYPE="cuda"
-            fi
-          fi
-
-          echo "BUILD_TYPE=$BUILD_TYPE"
-          echo "build_type=$BUILD_TYPE" >> $GITHUB_OUTPUT
-          if [ "$BUILD_TYPE" = "cpu" ]; then
-            echo "dockerfile=Dockerfile.cpu" >> $GITHUB_OUTPUT
-            echo "tag_suffix=-cpu" >> $GITHUB_OUTPUT
-          else
-            echo "dockerfile=Dockerfile" >> $GITHUB_OUTPUT
-            echo "tag_suffix=" >> $GITHUB_OUTPUT
-          fi
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -83,12 +34,13 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ${{ steps.set-build-type.outputs.dockerfile }}
+          file: ./Dockerfile
+          # 如果 Dockerfile 定义了多阶段构建且目标为 runtime，可取消下一行注释
           target: runtime
           platforms: linux/amd64
           push: true
           tags: |
-            ${{ secrets.ACR_REGISTRY }}/${{ secrets.ACR_NAMESPACE }}/effigies:latest${{ steps.set-build-type.outputs.tag_suffix }}
+            ${{ secrets.ACR_REGISTRY }}/${{ secrets.ACR_NAMESPACE }}/effigies:latest
           provenance: false
           sbom: false
           outputs: type=registry,oci-mediatypes=false
@@ -101,4 +53,4 @@ jobs:
 
       - name: Build success notification
         if: success()
-        run: echo "✅ Effigies 镜像构建并推送至阿里云 ACR 完成 (类型: ${{ steps.set-build-type.outputs.build_type }})"
+        run: echo "✅ Effigies 镜像构建并推送至阿里云 ACR 完成"
