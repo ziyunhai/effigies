@@ -36,7 +36,7 @@ jobs:
           context: .
           file: ./Dockerfile
           # 如果 Dockerfile 定义了多阶段构建且目标为 runtime，可取消下一行注释
-          # target: runtime
+          target: runtime
           platforms: linux/amd64
           push: true
           tags: |
