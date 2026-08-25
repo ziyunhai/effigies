@@ -5,8 +5,8 @@ on:
     branches:
       - main
     paths:
-      - 'Dockerfile'
-      - '.github/workflows/docker_aliyun.yml'
+      - 'Dockerfile.cpu'
+      - '.github/workflows/docker_aliyun_cpu.yml'
   workflow_dispatch:
 
 jobs:
