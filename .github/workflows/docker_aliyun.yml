@@ -41,6 +41,9 @@ jobs:
           push: true
           tags: |
             ${{ secrets.ACR_REGISTRY }}/${{ secrets.ACR_NAMESPACE }}/effigies:latest
+          provenance: false
+          sbom: false
+          outputs: type=registry,oci-mediatypes=false
           # cache-from: type=gha
           # cache-to: type=gha,mode=max
 
